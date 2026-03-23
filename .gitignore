@@ -21,3 +21,8 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Dev
+checklist.md
+CLAUDE.md
+.claude/
