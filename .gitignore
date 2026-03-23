@@ -26,3 +26,6 @@ Thumbs.db
 checklist.md
 CLAUDE.md
 .claude/
+
+# Lovable UI export (migrated into frontend/)
+lovable/
