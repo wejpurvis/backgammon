@@ -1,45 +1,52 @@
 // GameState, phase management, win detection
 
+use serde::{Serialize, Deserialize};
 use crate::{Player, board::Board};
 use crate::moves::{Move, MoveSequence, apply_single_move};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Phase {
     Rolling,
     Moving,
+    CubeOffered,
     GameOver,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WinType {
     Normal,
     Gammon,
     Backgammon,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CubeOwner {
+    Centre,
+    White,
+    Black,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GameState {
     pub board: Board,
     pub current_player: Player,
     pub dice: (u8, u8),
     pub phase: Phase,
+    pub cube_value: u8,
+    pub cube_owner: CubeOwner,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn roll_dice() -> (u8, u8) {
-    use std::time::SystemTime;
-    let nanos = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map(|d| d.subsec_nanos())
-        .unwrap_or(12345);
-    let d1 = ((nanos % 6) + 1) as u8;
-    let d2 = (((nanos / 7) % 6) + 1) as u8;
-    (d1, d2)
-}
-
-#[cfg(target_arch = "wasm32")]
-pub fn roll_dice() -> (u8, u8) {
-    (1, 1) // replaced by js_sys in Phase 2
+impl GameState {
+    pub fn new() -> Self {
+        GameState {
+            board: Board::new(),
+            current_player: Player::White,
+            dice: (0, 0),
+            phase: Phase::Rolling,
+            cube_value: 1,
+            cube_owner: CubeOwner::Centre,
+        }
+    }
 }
 
 pub fn apply_move(state: &GameState, mv: Move) -> GameState {
@@ -48,6 +55,8 @@ pub fn apply_move(state: &GameState, mv: Move) -> GameState {
         current_player: state.current_player,
         dice: state.dice,
         phase: state.phase,
+        cube_value: state.cube_value,
+        cube_owner: state.cube_owner,
     }
 }
 
@@ -65,6 +74,8 @@ pub fn apply_sequence(state: &GameState, seq: &MoveSequence) -> GameState {
         current_player: next_player,
         dice: (0, 0),
         phase: Phase::Rolling,
+        cube_value: state.cube_value,
+        cube_owner: state.cube_owner,
     }
 }
 
@@ -109,9 +120,8 @@ mod tests {
 
     #[test]
     fn test_gammon_detection() {
-        // White has borne off all 15; Black has 15 checkers on board (not bar, not in 1–6)
         let mut points = [0i8; 26];
-        points[10] = -15; // All Black checkers in the outfield
+        points[10] = -15;
         let board = Board { points, off_white: 15, off_black: 0 };
         let result = is_game_over(&board);
         assert_eq!(result, Some((Player::White, WinType::Gammon)));
@@ -119,11 +129,38 @@ mod tests {
 
     #[test]
     fn test_backgammon_detection() {
-        // White has borne off all 15; Black has a checker on the bar
         let mut points = [0i8; 26];
-        points[25] = -15; // All Black checkers on bar
+        points[25] = -15;
         let board = Board { points, off_white: 15, off_black: 0 };
         let result = is_game_over(&board);
         assert_eq!(result, Some((Player::White, WinType::Backgammon)));
+    }
+
+    #[test]
+    fn test_points_calculation() {
+        // Gammon = 2 * cube_value
+        let mut points = [0i8; 26];
+        points[10] = -15;
+        let board = Board { points, off_white: 15, off_black: 0 };
+        let (_, win_type) = is_game_over(&board).unwrap();
+        let cube_value = 4u32;
+        let pts = match win_type {
+            WinType::Normal => 1,
+            WinType::Gammon => 2,
+            WinType::Backgammon => 3,
+        } * cube_value;
+        assert_eq!(pts, 8, "Gammon × cube 4 = 8 points");
+
+        // Backgammon × cube 2 = 6
+        let mut points2 = [0i8; 26];
+        points2[25] = -15;
+        let board2 = Board { points: points2, off_white: 15, off_black: 0 };
+        let (_, win_type2) = is_game_over(&board2).unwrap();
+        let pts2 = match win_type2 {
+            WinType::Normal => 1,
+            WinType::Gammon => 2,
+            WinType::Backgammon => 3,
+        } * 2u32;
+        assert_eq!(pts2, 6, "Backgammon × cube 2 = 6 points");
     }
 }

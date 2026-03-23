@@ -1,10 +1,9 @@
 // Legal move generation
 
-use wasm_bindgen::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::{Player, board::Board};
 
-#[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Move {
     pub from: u8,
     pub to: u8,
@@ -17,7 +16,7 @@ pub struct Move {
 // to=0    → White bearing off
 // to=25   → Black bearing off
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MoveSequence {
     pub moves: Vec<Move>,
 }
@@ -241,19 +240,6 @@ pub fn get_legal_sequences(board: &Board, player: Player, dice: &[u8]) -> Vec<Mo
     }
 
     unique
-}
-
-#[wasm_bindgen]
-pub fn get_legal_moves(board: &Board, player: Player, dice: &[u8]) -> Vec<u8> {
-    let seqs = get_legal_sequences(board, player, dice);
-    let mut result = Vec::new();
-    for seq in seqs {
-        for mv in seq.moves {
-            result.push(mv.from);
-            result.push(mv.to);
-        }
-    }
-    result
 }
 
 #[cfg(test)]

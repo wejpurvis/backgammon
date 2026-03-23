@@ -1,11 +1,10 @@
 // Board state & representation
 
 use std::fmt;
-use wasm_bindgen::prelude::*;
+use serde::{Serialize, Deserialize};
 use crate::Player;
 
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Board {
     pub(crate) points: [i8; 26],
     pub off_white: u8,
@@ -106,8 +105,9 @@ mod tests {
         let black_total: i8 = board.points.iter().filter(|&&x| x < 0).map(|&x| -x).sum();
         assert_eq!(black_total, 15);
     }
+
     #[test]
-      fn print_board() {
-          println!("{}", Board::new());  // use Board directly, not crate::board::Board
-      }
+    fn print_board() {
+        println!("{}", Board::new());
+    }
 }
