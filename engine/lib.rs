@@ -158,6 +158,23 @@ pub fn respond_to_double(state_json: &str, accept: bool) -> String {
     }
 }
 
+/// Returns JSON `{"white": u32, "black": u32}` pip counts for the current board.
+/// White: each checker at point p contributes p pips; bar checker = 25.
+/// Black: each checker at point p contributes (25-p) pips; bar checker = 25.
+#[wasm_bindgen]
+pub fn pip_count(state_json: &str) -> String {
+    let state: game::GameState = serde_json::from_str(state_json).unwrap();
+    let board = &state.board;
+    let mut white: u32 = board.points[0] as u32 * 25;
+    let mut black: u32 = board.points[25].unsigned_abs() as u32 * 25;
+    for p in 1usize..=24 {
+        let v = board.points[p];
+        if v > 0 { white += v as u32 * p as u32; }
+        else if v < 0 { black += (-v) as u32 * (25 - p as u32); }
+    }
+    format!("{{\"white\":{},\"black\":{}}}", white, black)
+}
+
 /// Records a completed game result and returns the updated JSON `MatchState`.
 #[wasm_bindgen]
 pub fn get_match_state(match_json: &str, result_json: &str) -> String {

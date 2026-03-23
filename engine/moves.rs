@@ -340,6 +340,28 @@ mod tests {
         assert!(max_len > 1, "Should use multiple dice with doubles");
     }
 
+    /// When die A is blocked for the only checker but die B is legal,
+    /// the engine must produce sequences that START with die B's move —
+    /// so the TypeScript left-die check correctly rejects die A and
+    /// the player knows to swap dice first.
+    #[test]
+    fn test_die_order_left_blocked_right_legal() {
+        // White checker at 6; Black×2 blocks point 4 (die-2 destination).
+        // Die 5 reaches point 1 (open).  Only ordering [5,2] yields a sequence.
+        let board = white_board(&[(6, 1), (4, -2)]);
+        let seqs = get_legal_sequences(&board, Player::White, &[2, 5]);
+        // Must have a sequence whose first move uses die 5 (6→1)
+        let has_die5_first = seqs.iter().any(|s| {
+            s.moves.first() == Some(&Move { from: 6, to: 1, player: Player::White })
+        });
+        assert!(has_die5_first, "Should have a sequence starting with die-5 move (6→1)");
+        // Must NOT have any sequence starting with die 2 (6→4 is blocked)
+        let has_die2_first = seqs.iter().any(|s| {
+            s.moves.first() == Some(&Move { from: 6, to: 4, player: Player::White })
+        });
+        assert!(!has_die2_first, "Should NOT have a sequence starting with die-2 move (6→4 blocked)");
+    }
+
     #[test]
     fn test_forced_higher_die() {
         // White checker at 5, Black×2 at 4; dice [1,4]: only die-4 move (5→1) is legal
