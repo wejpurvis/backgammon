@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 21% 12%;
+    --foreground: 210 20% 90%;
+
+    --card: 222 21% 15%;
+    --card-foreground: 210 20% 90%;
+
+    --popover: 222 21% 17%;
+    --popover-foreground: 210 20% 90%;
+
+    --primary: 152 48% 62%;
+    --primary-foreground: 222 21% 12%;
+
+    --secondary: 222 15% 22%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 222 15% 20%;
+    --muted-foreground: 210 10% 50%;
+
+    --accent: 152 48% 62%;
+    --accent-foreground: 222 21% 12%;
+
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 210 20% 95%;
+
+    --border: 222 15% 25%;
+    --input: 222 15% 25%;
+    --ring: 152 48% 62%;
+
+    --radius: 0.375rem;
+
+    /* Board */
+    --board-felt: 213 10% 37%;
+    --board-frame: 222 28% 12%;
+    --board-frame-highlight: 222 20% 18%;
+    --triangle-dark: 218 22% 22%;
+    --triangle-light: 210 33% 97%;
+    --bar-color: 222 28% 14%;
+
+    /* Checkers */
+    --checker-light: 34 100% 97%;
+    --checker-light-stroke: 34 30% 80%;
+    --checker-dark: 0 0% 5%;
+    --checker-dark-stroke: 0 0% 12%;
+    --checker-selected: 152 48% 62%;
+
+    /* Dice */
+    --dice-face: 210 15% 95%;
+    --dice-pip: 0 0% 10%;
+    --dice-used: 0 0% 40%;
+
+    /* Cube */
+    --cube-face: 152 48% 50%;
+    --cube-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #root {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@keyframes flash-green-fade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@layer utilities {
+  /* font-body is a semantic alias; font-sans (Inter) already covers it but
+     Lovable components use .font-body so we keep the class available */
+  .font-body {
+    font-family: "Inter", sans-serif;
+  }
+}
