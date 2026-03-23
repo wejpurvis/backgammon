@@ -1,0 +1,23 @@
+# Rust
+target/
+
+# Node / Frontend
+node_modules/
+dist/
+.next/
+
+# WASM build output
+pkg/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

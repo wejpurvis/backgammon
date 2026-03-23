@@ -1,0 +1,51 @@
+# Backgammon
+
+A backgammon game built with React/TypeScript (frontend) and Rust (game engine, compiled to WASM).
+
+## Stack
+
+- **Frontend**: React + TypeScript, Vite
+- **Engine**: Rust → WebAssembly via wasm-bindgen
+- **AI**: Incremental heuristic opponent (random → greedy → weighted → expectiminimax)
+
+## Project Structure
+
+```txt
+backgammon/
+├── frontend/       # React + TypeScript
+├── engine/         # Rust crate → WASM
+└── www/            # Static build output
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Rust + cargo
+- Node.js + npm
+- wasm-pack
+
+### Run locally
+
+```bash
+# Build the engine
+cd engine && wasm-pack build --target web
+
+# Run the frontend
+cd frontend && npm install && npm run dev
+```
+
+## Development Roadmap
+
+- [x] Project setup
+- [ ] Rust engine: board state + move generation
+- [ ] WASM bridge
+- [ ] React board rendering
+- [ ] AI opponent (Level 1: random)
+- [ ] AI opponent (Level 2: greedy heuristic)
+- [ ] AI opponent (Level 3: weighted positional)
+- [ ] Polish + deploy
+
+## License
+
+This project is licensed under the MIT license - see the [LICENSE](License) file for details.
