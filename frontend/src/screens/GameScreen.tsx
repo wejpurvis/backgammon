@@ -5,8 +5,9 @@ import {
   get_legal_moves,
   apply_move,
   is_game_over,
+  pip_count,
 } from '@engine/backgammon_engine'
-import { GameState, MatchState, MoveSequence, GameOverResult, Move, Player } from '../types'
+import { GameState, MatchState, MoveSequence, GameOverResult, Move, Player, GameMode } from '../types'
 import Board, { AnimMove } from '../components/Board'
 import Cube from '../components/Cube'
 import WinDots from '../components/WinDots'
@@ -14,6 +15,7 @@ import GameOverModal from '../components/GameOverModal'
 
 interface Props {
   matchLength: number
+  mode: GameMode
   onNewGame: () => void
 }
 
@@ -45,7 +47,7 @@ function computeDest(from: number, die: number, player: Player): number {
   }
 }
 
-export default function GameScreen({ matchLength, onNewGame }: Props) {
+export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Props) {
   // Lazy initialisers: new_game() is called exactly once per mount.
   const [gameState, setGameState] = useState<GameState>(() => {
     const r = JSON.parse(new_game(matchLength)) as { game: GameState; match_state: MatchState }
@@ -69,8 +71,7 @@ export default function GameScreen({ matchLength, onNewGame }: Props) {
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const animKeyRef = useRef(0)
 
-  // TODO: wire to WASM engine — pip_count not yet exposed
-  const pipCount = { white: 167, black: 167 }
+  const pipCount = JSON.parse(pip_count(JSON.stringify(gameState))) as { white: number; black: number }
 
   // Number of moves the current roll requires (1 or 2, or up to 4 for doubles).
   const maxMoves = originalSeqs.length > 0 ? originalSeqs[0].moves.length : 0
@@ -214,7 +215,7 @@ export default function GameScreen({ matchLength, onNewGame }: Props) {
         <div className="flex items-center gap-2">
           <span className="font-body text-xs text-muted-foreground">Pips:</span>
           <span className="font-body text-sm text-foreground font-medium">
-            {pipCount.black /* TODO: wire to WASM engine */}
+            {pipCount.black}
           </span>
         </div>
       </div>
@@ -245,7 +246,7 @@ export default function GameScreen({ matchLength, onNewGame }: Props) {
         <div className="flex items-center gap-2">
           <span className="font-body text-xs text-muted-foreground">Pips:</span>
           <span className="font-body text-sm text-foreground font-medium">
-            {pipCount.white /* TODO: wire to WASM engine */}
+            {pipCount.white}
           </span>
         </div>
       </div>

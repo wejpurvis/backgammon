@@ -1,5 +1,7 @@
 export type Player = 'White' | 'Black'
 
+export type GameMode = 'single' | 'two-player'
+
 export type Phase = 'Rolling' | 'Moving' | 'CubeOffered' | 'GameOver'
 
 export type WinType = 'Normal' | 'Gammon' | 'Backgammon'
