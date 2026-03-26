@@ -195,8 +195,8 @@ const Board: React.FC<BoardProps> = ({
           <text
             x={x}
             y={top
-              ? FRAME + CHECKER_R + 4 + (maxVisible - 1) * CHECKER_SPACING + 1
-              : BOARD_H - FRAME - CHECKER_R - 4 - (maxVisible - 1) * CHECKER_SPACING + 1}
+              ? FRAME + CHECKER_R + 4 + (maxVisible - 1) * CHECKER_SPACING
+              : BOARD_H - FRAME - CHECKER_R - 4 - (maxVisible - 1) * CHECKER_SPACING}
             textAnchor="middle" dominantBaseline="central"
             fontSize="10" fontWeight="600" fontFamily="Inter, sans-serif"
             fill={player === "White" ? "hsl(var(--checker-dark))" : "hsl(var(--checker-light))"}

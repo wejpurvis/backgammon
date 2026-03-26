@@ -308,7 +308,7 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
         {canDouble && (
           <button
             onClick={handleDouble}
-            className="absolute left-[47.61%] -translate-x-1/2 text-xs font-body border border-primary/30 text-foreground hover:bg-primary/10 px-2 py-0.5 rounded transition-colors"
+            className="absolute left-[47.61%] top-[4px] -translate-x-1/2 text-xs font-body border border-primary/30 text-foreground hover:bg-primary/10 px-2 py-0.5 rounded transition-colors"
           >
             Double
           </button>
