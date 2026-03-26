@@ -10,6 +10,7 @@ import {
   can_offer_double,
   accept_double,
   reject_double,
+  get_match_state,
 } from '@engine/backgammon_engine'
 import { GameState, MatchState, MoveSequence, GameOverResult, Move, Player, GameMode } from '../types'
 import Board, { AnimMove } from '../components/Board'
@@ -57,7 +58,7 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
     const r = JSON.parse(new_game(matchLength)) as { game: GameState; match_state: MatchState }
     return r.game
   })
-  const [matchState] = useState<MatchState>(() => {
+  const [matchState, setMatchState] = useState<MatchState>(() => {
     const r = JSON.parse(new_game(matchLength)) as { game: GameState; match_state: MatchState }
     return r.match_state
   })
@@ -80,6 +81,38 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
 
   // Number of moves the current roll requires (1 or 2, or up to 4 for doubles).
   const maxMoves = originalSeqs.length > 0 ? originalSeqs[0].moves.length : 0
+
+  // ── Match helpers ──────────────────────────────────────────────────────────
+
+  const recordResult = useCallback((result: GameOverResult) => {
+    const matchResult = {
+      winner: result.winner,
+      points_awarded: result.points,
+      outcome_type: result.win_type,
+      cube_value: result.cube_value,
+    }
+    const newMatchState: MatchState = JSON.parse(
+      get_match_state(JSON.stringify(matchState), JSON.stringify(matchResult))
+    )
+    setMatchState(newMatchState)
+    setGameResult(result)
+  }, [matchState])
+
+  const handleNextGame = useCallback(() => {
+    const r = JSON.parse(new_game(matchLength)) as { game: GameState; match_state: MatchState }
+    setGameState(r.game)
+    setGameResult(null)
+    setTurnStartState(null)
+    setOriginalSeqs([])
+    setLegalSeqs([])
+    setPendingMoves([])
+    setDiceOrder([0, 1])
+    setFlashDest(null)
+    setAnimMove(null)
+    setNoLegalMoves(false)
+  }, [matchLength])
+
+  const isMatchOver = matchState.score_white >= matchState.target || matchState.score_black >= matchState.target
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -111,8 +144,8 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
     setDiceOrder([0, 1])
     setFlashDest(null)
     setAnimMove(null)
-    if (result) setGameResult(result)
-  }, [])
+    if (result) recordResult(result)
+  }, [recordResult])
 
   const handleRoll = useCallback(() => {
     if (gameState.phase !== 'Rolling') return
@@ -192,8 +225,8 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
 
   const handleReject = useCallback(() => {
     const resultJson = reject_double(JSON.stringify(gameState))
-    setGameResult(JSON.parse(resultJson))
-  }, [gameState])
+    recordResult(JSON.parse(resultJson))
+  }, [gameState, recordResult])
 
   // Click on a checker (or point).
   // Tries left die first; if only the right die is legal, plays that automatically.
@@ -333,10 +366,10 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
       {gameResult && (
         <GameOverModal
           result={gameResult}
-          onNewGame={() => {
-            setGameResult(null)
-            onNewGame()
-          }}
+          matchState={matchState}
+          isMatchOver={isMatchOver}
+          onNextGame={handleNextGame}
+          onMainMenu={onNewGame}
         />
       )}
     </div>

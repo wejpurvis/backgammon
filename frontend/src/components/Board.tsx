@@ -64,6 +64,10 @@ const PLAY_W = 12 * POINT_W + BAR_W;
 const BOARD_W = FRAME * 2 + PLAY_W + TRAY_W;
 const BOARD_H = 440;
 
+// Bear-off tray: 15 checkers span exactly from board edge to vertical centre.
+// spacing = (BOARD_H/2 - FRAME - CHECKER_R) / 14  (14 gaps between 15 checkers)
+const TRAY_SPACING = (BOARD_H / 2 - FRAME - CHECKER_R) / 14;
+
 const HALF_LEFT_CX = FRAME + 3 * POINT_W;
 const HALF_RIGHT_CX = FRAME + 9 * POINT_W + BAR_W;
 
@@ -259,18 +263,41 @@ const Board: React.FC<BoardProps> = ({
       />
     );
 
-    for (let i = 0; i < Math.min(board.off_white, 15); i++) {
+    // White: stack upward from bottom edge toward centre
+    const wCount = Math.min(board.off_white, 15);
+    for (let i = 0; i < wCount; i++) {
+      const y = BOARD_H - FRAME - CHECKER_R - i * TRAY_SPACING;
       elements.push(
-        <rect key={`ow-${i}`} x={trayX - 10} y={BOARD_H - FRAME - 6 - i * 12}
-          width={20} height={10} rx={2}
-          fill="hsl(var(--checker-light))" stroke="hsl(var(--checker-light-stroke))" strokeWidth={0.5} />
+        <Checker key={`ow-${i}`} player="White" x={trayX} y={y} radius={CHECKER_R} />
       );
     }
-    for (let i = 0; i < Math.min(board.off_black, 15); i++) {
+    if (wCount > 0) {
+      const topY = BOARD_H - FRAME - CHECKER_R - (wCount - 1) * TRAY_SPACING;
       elements.push(
-        <rect key={`ob-${i}`} x={trayX - 10} y={FRAME + 4 + i * 12}
-          width={20} height={10} rx={2}
-          fill="hsl(var(--checker-dark))" stroke="hsl(var(--checker-dark-stroke))" strokeWidth={0.5} />
+        <text key="ow-count" x={trayX} y={topY}
+          textAnchor="middle" dominantBaseline="central"
+          fontSize="10" fontWeight="600" fontFamily="Inter, sans-serif"
+          fill="hsl(var(--checker-dark))" pointerEvents="none"
+        >{wCount}</text>
+      );
+    }
+
+    // Black: stack downward from top edge toward centre
+    const bCount = Math.min(board.off_black, 15);
+    for (let i = 0; i < bCount; i++) {
+      const y = FRAME + CHECKER_R + i * TRAY_SPACING;
+      elements.push(
+        <Checker key={`ob-${i}`} player="Black" x={trayX} y={y} radius={CHECKER_R} />
+      );
+    }
+    if (bCount > 0) {
+      const topY = FRAME + CHECKER_R + (bCount - 1) * TRAY_SPACING;
+      elements.push(
+        <text key="ob-count" x={trayX} y={topY}
+          textAnchor="middle" dominantBaseline="central"
+          fontSize="10" fontWeight="600" fontFamily="Inter, sans-serif"
+          fill="hsl(var(--checker-light))" pointerEvents="none"
+        >{bCount}</text>
       );
     }
 
@@ -428,10 +455,10 @@ const Board: React.FC<BoardProps> = ({
           toY = pointSVGY(to, Math.abs(board.points[to]) - 1)
         } else if (to === 0) {
           toX = trayX
-          toY = BOARD_H - FRAME - 6 - (board.off_white - 1) * 12
+          toY = BOARD_H - FRAME - CHECKER_R - (board.off_white - 1) * TRAY_SPACING
         } else {
           toX = trayX
-          toY = FRAME + 4 + (board.off_black - 1) * 12
+          toY = FRAME + CHECKER_R + (board.off_black - 1) * TRAY_SPACING
         }
 
         return (

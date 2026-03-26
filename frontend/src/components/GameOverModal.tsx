@@ -1,42 +1,74 @@
-import type { GameOverResult } from "../types";
-
-const WIN_TYPE_LABEL: Record<string, string> = {
-  Normal: "Win",
-  Gammon: "Gammon",
-  Backgammon: "Backgammon",
-};
+import type { GameOverResult, MatchState } from "../types";
 
 interface Props {
   result: GameOverResult;
-  onNewGame: () => void;
+  matchState: MatchState;
+  isMatchOver: boolean;
+  onNextGame: () => void;
+  onMainMenu: () => void;
 }
 
-export default function GameOverModal({ result, onNewGame }: Props) {
-  const label = WIN_TYPE_LABEL[result.win_type] ?? result.win_type;
+export default function GameOverModal({ result, matchState, isMatchOver, onNextGame, onMainMenu }: Props) {
+  const winner = result.winner;
+
+  const checkerCircle = (
+    <div
+      className="w-14 h-14 rounded-full border-4 border-primary"
+      style={{
+        backgroundColor: winner === "White"
+          ? "hsl(var(--checker-light))"
+          : "hsl(var(--checker-dark))",
+      }}
+    />
+  );
+
+  if (isMatchOver) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="bg-card border border-border rounded-xl p-10 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center gap-5">
+          {checkerCircle}
+          <h2 className="font-display text-3xl text-foreground text-center">
+            {winner} wins the match!
+          </h2>
+          <p className="font-body text-muted-foreground text-lg">
+            White {matchState.score_white} — Black {matchState.score_black}
+          </p>
+          <button
+            onClick={onMainMenu}
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-display text-lg h-12 rounded-md transition-colors"
+          >
+            Main Menu
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="bg-card border border-border rounded-xl p-10 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center gap-5">
-        <div
-          className="w-14 h-14 rounded-full border-4 border-primary"
-          style={{
-            backgroundColor: result.winner === "White"
-              ? "hsl(var(--checker-light))"
-              : "hsl(var(--checker-dark))",
-          }}
-        />
-        <h2 className="font-display text-3xl text-foreground">{result.winner} Wins</h2>
-        <p className="font-body text-muted-foreground text-lg">
-          {result.cube_value > 1
-            ? `${label} × ${result.cube_value} = ${result.points} points`
-            : `${label} — ${result.points} ${result.points === 1 ? "point" : "points"}`}
+        {checkerCircle}
+        <h2 className="font-display text-3xl text-foreground">{winner} wins</h2>
+        <p className="font-body text-primary text-xl font-semibold">
+          +{result.points} {result.points === 1 ? "point" : "points"}
         </p>
-        <button
-          onClick={onNewGame}
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-display text-lg h-12 rounded-md transition-colors"
-        >
-          New Game
-        </button>
+        <p className="font-body text-muted-foreground text-sm">
+          White {matchState.score_white} - Black {matchState.score_black} (First to {matchState.target})
+        </p>
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={onNextGame}
+            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/80 font-display text-lg h-12 rounded-md transition-colors"
+          >
+            Next Game
+          </button>
+          <button
+            onClick={onMainMenu}
+            className="flex-1 border border-border text-foreground hover:bg-secondary font-display text-lg h-12 rounded-md transition-colors"
+          >
+            Main Menu
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -107,29 +107,46 @@ describe('GameOverModal', () => {
   const makeResult = (winner: 'White' | 'Black', win_type: string, points: number): GameOverResult =>
     ({ winner, win_type: win_type as GameOverResult['win_type'], points, cube_value: 1 })
 
+  const matchState: MatchState = {
+    score_white: 1,
+    score_black: 0,
+    target: 5,
+    games_played: 1,
+    crawford_done: false,
+    is_crawford_game: false,
+  }
+
+  const defaultProps = {
+    matchState,
+    isMatchOver: false,
+    onNextGame: () => {},
+    onMainMenu: () => {},
+  }
+
   it('shows the winner name', () => {
-    render(<GameOverModal result={makeResult('White', 'Normal', 1)} onNewGame={() => {}} />)
-    expect(screen.getByText(/White Wins/i)).toBeInTheDocument()
-  })
-
-  it('shows Gammon label for gammon wins', () => {
-    render(<GameOverModal result={makeResult('Black', 'Gammon', 2)} onNewGame={() => {}} />)
-    expect(screen.getByText(/Gammon/i)).toBeInTheDocument()
-  })
-
-  it('shows Backgammon label for backgammon wins', () => {
-    render(<GameOverModal result={makeResult('White', 'Backgammon', 3)} onNewGame={() => {}} />)
-    expect(screen.getByText(/Backgammon/i)).toBeInTheDocument()
+    render(<GameOverModal result={makeResult('White', 'Normal', 1)} {...defaultProps} />)
+    expect(screen.getByText(/White wins/i)).toBeInTheDocument()
   })
 
   it('shows point count', () => {
-    render(<GameOverModal result={makeResult('White', 'Gammon', 4)} onNewGame={() => {}} />)
-    expect(screen.getByText(/4 points/i)).toBeInTheDocument()
+    render(<GameOverModal result={makeResult('White', 'Normal', 2)} {...defaultProps} />)
+    expect(screen.getByText(/2 points/i)).toBeInTheDocument()
   })
 
-  it('renders New Game button', () => {
-    const handler = () => {}
-    render(<GameOverModal result={makeResult('Black', 'Normal', 1)} onNewGame={handler} />)
-    expect(screen.getByText('New Game')).toBeInTheDocument()
+  it('renders Next Game button when match is not over', () => {
+    render(<GameOverModal result={makeResult('Black', 'Normal', 1)} {...defaultProps} />)
+    expect(screen.getByText('Next Game')).toBeInTheDocument()
+  })
+
+  it('renders Main Menu button', () => {
+    render(<GameOverModal result={makeResult('Black', 'Normal', 1)} {...defaultProps} />)
+    expect(screen.getByText('Main Menu')).toBeInTheDocument()
+  })
+
+  it('shows match over state with only Main Menu', () => {
+    render(<GameOverModal result={makeResult('White', 'Normal', 5)} {...defaultProps} isMatchOver={true} />)
+    expect(screen.getByText(/wins the match/i)).toBeInTheDocument()
+    expect(screen.queryByText('Next Game')).toBeNull()
+    expect(screen.getByText('Main Menu')).toBeInTheDocument()
   })
 })
