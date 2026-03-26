@@ -69,7 +69,7 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
   const [diceOrder, setDiceOrder] = useState<[number, number]>([0, 1])
   const [flashDest, setFlashDest] = useState<number | null>(null)
   const [animMove, setAnimMove] = useState<AnimMove | null>(null)
-  const [noMovesMsg, setNoMovesMsg] = useState<string | null>(null)
+  const [noLegalMoves, setNoLegalMoves] = useState(false)
   const [gameResult, setGameResult] = useState<GameOverResult | null>(null)
 
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -118,25 +118,39 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
     if (gameState.phase !== 'Rolling') return
     const rolled: GameState = JSON.parse(roll_dice(JSON.stringify(gameState)))
     const seqs: MoveSequence[] = JSON.parse(get_legal_moves(JSON.stringify(rolled)))
+    // Higher die on the left
+    const initialOrder: [number, number] = rolled.dice[0] >= rolled.dice[1] ? [0, 1] : [1, 0]
 
     if (seqs.length === 0) {
-      const advanced: GameState = JSON.parse(apply_move(JSON.stringify(rolled), JSON.stringify({ moves: [] })))
-      setGameState(advanced)
+      // Keep the rolled state visible (dice with ✕ overlay) until player acknowledges
+      setGameState(rolled)
+      setDiceOrder(initialOrder)
+      setNoLegalMoves(true)
       setTurnStartState(null)
+      setOriginalSeqs([])
       setLegalSeqs([])
       setPendingMoves([])
-      setDiceOrder([0, 1])
-      setNoMovesMsg(`No legal moves for ${rolled.current_player}`)
-      setTimeout(() => setNoMovesMsg(null), 2500)
     } else {
       setGameState(rolled)
       setTurnStartState(rolled)
       setOriginalSeqs(seqs)
       setLegalSeqs(seqs)
       setPendingMoves([])
-      setDiceOrder([0, 1])
+      setDiceOrder(initialOrder)
     }
   }, [gameState])
+
+  // Player acknowledges a no-legal-moves roll by clicking the red ✕
+  const handlePass = useCallback(() => {
+    if (!noLegalMoves) return
+    const advanced: GameState = JSON.parse(apply_move(JSON.stringify(gameState), JSON.stringify({ moves: [] })))
+    setGameState(advanced)
+    setNoLegalMoves(false)
+    setTurnStartState(null)
+    setLegalSeqs([])
+    setPendingMoves([])
+    setDiceOrder([0, 1])
+  }, [gameState, noLegalMoves])
 
   // Confirm the completed turn — called when the player clicks ✓
   const handleConfirm = useCallback(() => {
@@ -160,10 +174,11 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
 
   // Swap which die is "left" — only allowed before the first move of a turn
   const handleDieSwap = useCallback(() => {
+    if (noLegalMoves) return
     if (pendingMoves.length > 0) return
     if (gameState.dice[0] === gameState.dice[1]) return  // doubles: swap is a no-op
     setDiceOrder(prev => [prev[1], prev[0]] as [number, number])
-  }, [pendingMoves, gameState.dice])
+  }, [noLegalMoves, pendingMoves, gameState.dice])
 
   const handleDouble = useCallback(() => {
     const newStateJson = offer_double(JSON.stringify(gameState))
@@ -180,31 +195,50 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
     setGameResult(JSON.parse(resultJson))
   }, [gameState])
 
-  // Click on a checker (or point): immediately move by the left die value.
-  // Silent no-op if the move is illegal.
+  // Click on a checker (or point).
+  // Tries left die first; if only the right die is legal, plays that automatically.
   const handlePointClick = useCallback((pointIndex: number) => {
     if (gameState.phase !== 'Moving') return
-    if (pointIndex === -1) return  // bear-off zone click — ignored; player clicks the checker
+    if (noLegalMoves) return          // board non-interactive until player clicks ✕
+    if (pointIndex === -1) return     // bear-off zone click — player clicks the checker
     if (pendingMoves.length >= maxMoves) return  // awaiting ✓ confirmation
 
     const player = gameState.current_player
     const step = pendingMoves.length
-
-    // The active die at this step
     const isDoubles = gameState.dice[0] === gameState.dice[1]
-    const leftDie = isDoubles
-      ? gameState.dice[0]
-      : gameState.dice[diceOrder[step < 2 ? step : 1]]
 
-    const expectedTo = computeDest(pointIndex, leftDie, player)
-
-    // Check if any current legal sequence has this exact move at this step
-    const match = legalSeqs.find(
-      s => s.moves[step]?.from === pointIndex && s.moves[step]?.to === expectedTo
+    // Index of the die currently assigned to the left position for this step
+    const leftDieIdx = isDoubles ? 0 : diceOrder[Math.min(step, 1)]
+    const leftDie = gameState.dice[leftDieIdx]
+    const leftDest = computeDest(pointIndex, leftDie, player)
+    const leftMatch = legalSeqs.find(
+      s => s.moves[step]?.from === pointIndex && s.moves[step]?.to === leftDest
     )
-    if (!match) return  // illegal with the left die — silent fail
 
-    const move: Move = { from: pointIndex, to: expectedTo, player }
+    let destToPlay = leftDest
+    let activeOrder = diceOrder
+
+    if (leftMatch) {
+      // Left die is legal — play it
+    } else if (!isDoubles) {
+      // Try the right die
+      const rightDieIdx = leftDieIdx === 0 ? 1 : 0
+      const rightDie = gameState.dice[rightDieIdx]
+      const rightDest = computeDest(pointIndex, rightDie, player)
+      const rightMatch = legalSeqs.find(
+        s => s.moves[step]?.from === pointIndex && s.moves[step]?.to === rightDest
+      )
+      if (!rightMatch) return  // neither die works — silent no-op
+
+      // Swap order so the right die becomes left, keeping subsequent steps correct
+      destToPlay = rightDest
+      activeOrder = [diceOrder[1], diceOrder[0]] as [number, number]
+      setDiceOrder(activeOrder)
+    } else {
+      return  // doubles and left die illegal — no-op
+    }
+
+    const move: Move = { from: pointIndex, to: destToPlay, player }
     const newPending = [...pendingMoves, move]
     const newFiltered = originalSeqs.filter(s => matchesPrefix(s.moves, newPending))
     const displayState = applyPartialMove(gameState, move)
@@ -212,19 +246,11 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
     setPendingMoves(newPending)
     setGameState(displayState)
     setLegalSeqs(newFiltered)
-
-    // Flash source triangle + animate checker movement
-    triggerMoveEffects(pointIndex, expectedTo, player)
-  }, [gameState, legalSeqs, pendingMoves, diceOrder, originalSeqs, maxMoves, triggerMoveEffects])
+    triggerMoveEffects(pointIndex, destToPlay, player)
+  }, [gameState, noLegalMoves, legalSeqs, pendingMoves, diceOrder, originalSeqs, maxMoves, triggerMoveEffects])
 
   return (
     <div className="flex flex-col items-center gap-2 p-6 w-full max-w-5xl">
-
-      {noMovesMsg && (
-        <div className="bg-card border border-border text-foreground/80 font-body text-sm px-5 py-2 rounded-md">
-          {noMovesMsg}
-        </div>
-      )}
 
       {/* Top info line — Black; cube die at spine when value == 1 */}
       <div className="relative flex items-center justify-between w-full max-w-4xl">
@@ -262,13 +288,15 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
         maxMoves={maxMoves}
         cubeValue={gameState.cube_value}
         cubeOwner={gameState.cube_owner}
+        noLegalMoves={noLegalMoves}
         flashDest={flashDest}
         animMove={animMove}
         onPointClick={handlePointClick}
         onRoll={handleRoll}
         onSwap={handleDieSwap}
         onConfirm={handleConfirm}
-        onUndo={gameState.phase === 'Moving' ? handleUndo : undefined}
+        onUndo={gameState.phase === 'Moving' && !noLegalMoves ? handleUndo : undefined}
+        onPass={handlePass}
       />
 
       {/* Bottom info line — White; Double button absolutely positioned at the spine */}

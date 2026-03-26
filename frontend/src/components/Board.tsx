@@ -81,11 +81,13 @@ interface BoardProps {
   flashDest?: number | null;
   /** Checker currently in-flight — renders a smooth animated copy */
   animMove?: AnimMove | null;
+  noLegalMoves?: boolean;
   onPointClick?: (point: number) => void;
   onRoll?: () => void;
   onSwap?: () => void;
   onConfirm?: () => void;
   onUndo?: () => void;
+  onPass?: () => void;
 }
 
 const Board: React.FC<BoardProps> = ({
@@ -98,6 +100,7 @@ const Board: React.FC<BoardProps> = ({
   maxMoves,
   cubeValue,
   cubeOwner,
+  noLegalMoves,
   flashDest,
   animMove,
   onPointClick,
@@ -105,6 +108,7 @@ const Board: React.FC<BoardProps> = ({
   onSwap,
   onConfirm,
   onUndo,
+  onPass,
 }) => {
   const getPointX = (pt: number): number => {
     let col: number;
@@ -350,9 +354,11 @@ const Board: React.FC<BoardProps> = ({
               diceOrder={diceOrder}
               movesUsed={movesUsed}
               maxMoves={maxMoves}
+              noLegalMoves={noLegalMoves}
               onRoll={onRoll}
               onSwap={onSwap}
               onConfirm={onConfirm}
+              onPass={onPass}
             />
           )}
         </div>
@@ -369,9 +375,11 @@ const Board: React.FC<BoardProps> = ({
               diceOrder={diceOrder}
               movesUsed={movesUsed}
               maxMoves={maxMoves}
+              noLegalMoves={noLegalMoves}
               onRoll={onRoll}
               onSwap={onSwap}
               onConfirm={onConfirm}
+              onPass={onPass}
             />
           )}
         </div>

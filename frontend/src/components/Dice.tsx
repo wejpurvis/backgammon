@@ -70,9 +70,13 @@ interface DiceProps {
   movesUsed?: number;
   /** Total moves needed to complete this turn (2 normally, 4 for doubles) */
   maxMoves?: number;
+  /** True when the roll produced no legal moves — shows red ✕ on each die */
+  noLegalMoves?: boolean;
   onRoll?: () => void;
   onSwap?: () => void;
   onConfirm?: () => void;
+  /** Called when player clicks ✕ to acknowledge a no-legal-moves roll */
+  onPass?: () => void;
 }
 
 const Dice: React.FC<DiceProps> = ({
@@ -82,9 +86,11 @@ const Dice: React.FC<DiceProps> = ({
   diceOrder,
   movesUsed = 0,
   maxMoves = 0,
+  noLegalMoves = false,
   onRoll,
   onSwap,
   onConfirm,
+  onPass,
 }) => {
   const dark = currentPlayer === "Black";
   const order: [number, number] = diceOrder ?? [0, 1];
@@ -104,6 +110,7 @@ const Dice: React.FC<DiceProps> = ({
   if (phase === "Moving" && (dice[0] > 0 || dice[1] > 0)) {
     // Die i is "used" if its position in order has been passed
     const isDieUsed = (i: number) => {
+      if (noLegalMoves) return false;
       const pos = order[0] === i ? 0 : 1;
       return pos < movesUsed;
     };
@@ -112,9 +119,9 @@ const Dice: React.FC<DiceProps> = ({
     const leftOf = (i: number) => (order[0] === i ? 0 : 56);
     const zOf = (i: number) => (order[0] === i ? 2 : 1);
 
-    // Swap is only possible before the first move, and pointless for doubles
-    const canSwap = movesUsed === 0 && !isDoubles && !!onSwap;
-    const allUsed = maxMoves > 0 && movesUsed >= maxMoves;
+    // Swap disabled when no legal moves exist or before first move for doubles
+    const canSwap = !noLegalMoves && movesUsed === 0 && !isDoubles && !!onSwap;
+    const allUsed = !noLegalMoves && maxMoves > 0 && movesUsed >= maxMoves;
 
     return (
       <div style={{ position: "relative", width: 100, height: 44, userSelect: "none" }}>
@@ -149,6 +156,25 @@ const Dice: React.FC<DiceProps> = ({
             onClick={canSwap ? onSwap : undefined}
           />
         </div>
+
+        {/* Red ✕ centred over both dice — shown when roll produced no legal moves */}
+        {noLegalMoves && (
+          <div
+            style={{
+              position: "absolute", inset: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", zIndex: 4,
+            }}
+            onClick={onPass}
+          >
+            <span style={{
+              fontSize: 22, fontWeight: 700, lineHeight: 1,
+              fontFamily: "Inter, sans-serif",
+              color: "#EF4444",
+              textShadow: "0 0 10px rgba(239,68,68,0.6)",
+            }}>✕</span>
+          </div>
+        )}
 
         {/* Confirmation tick — appears when all moves are done */}
         {allUsed && (
