@@ -1,9 +1,32 @@
 // Doubling cube logic
 
-use crate::{Player, game::{GameState, Phase, CubeOwner}, match_state};
+use crate::{Player, game::{GameState, Phase, CubeOwner}, board::Board, match_state};
+
+/// Returns true if the two sides still have potential contact — i.e. the game
+/// is not yet a pure race. Doubling is only legal while contact exists.
+///
+/// Contact exists when:
+///   - Either player has checkers on the bar (must re-enter through opponent territory), OR
+///   - The highest-numbered point holding a White checker is greater than the
+///     lowest-numbered point holding a Black checker.
+pub fn has_contact(board: &Board) -> bool {
+    // Bar checkers: White bar = points[0] > 0, Black bar = points[25] < 0
+    if board.points[0] > 0 || board.points[25] < 0 {
+        return true;
+    }
+    let white_max = (1usize..=24).rev().find(|&p| board.points[p] > 0);
+    let black_min = (1usize..=24).find(|&p| board.points[p] < 0);
+    match (white_max, black_min) {
+        (Some(w), Some(b)) => w > b,
+        _ => false,
+    }
+}
 
 pub fn can_offer_double(state: &GameState) -> bool {
     if state.phase != Phase::Rolling {
+        return false;
+    }
+    if !has_contact(&state.board) {
         return false;
     }
     match state.cube_owner {
@@ -49,6 +72,34 @@ pub fn reject_double(state: &GameState) -> match_state::MatchResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_has_contact_starting_position() {
+        let state = GameState::new();
+        assert!(has_contact(&state.board), "Starting position always has contact");
+    }
+
+    #[test]
+    fn test_has_contact_pure_race() {
+        // All White checkers below all Black checkers → pure race, no contact
+        let mut points = [0i8; 26];
+        points[5] = 15;  // White: all 15 on point 5
+        points[10] = -15; // Black: all 15 on point 10 (higher than White)
+        let board = Board { points, off_white: 0, off_black: 0 };
+        assert!(!has_contact(&board), "Pure race: White max (5) < Black min (10)");
+    }
+
+    #[test]
+    fn test_cannot_double_in_race() {
+        let mut points = [0i8; 26];
+        points[5] = 15;
+        points[10] = -15;
+        let state = GameState {
+            board: Board { points, off_white: 0, off_black: 0 },
+            ..GameState::new()
+        };
+        assert!(!can_offer_double(&state), "Cannot double when no contact exists");
+    }
 
     #[test]
     fn test_cube_starts_at_one() {

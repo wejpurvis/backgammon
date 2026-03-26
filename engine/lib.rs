@@ -160,6 +160,13 @@ pub fn respond_to_double(state_json: &str, accept: bool) -> String {
     }
 }
 
+/// Returns true if the two sides still have potential contact (not a pure race).
+#[wasm_bindgen]
+pub fn has_contact(state_json: &str) -> bool {
+    let state: game::GameState = serde_json::from_str(state_json).unwrap();
+    cube::has_contact(&state.board)
+}
+
 /// Returns true if the current player is allowed to offer the cube.
 #[wasm_bindgen]
 pub fn can_offer_double(state_json: &str) -> bool {
