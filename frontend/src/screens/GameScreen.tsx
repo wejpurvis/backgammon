@@ -6,6 +6,10 @@ import {
   apply_move,
   is_game_over,
   pip_count,
+  offer_double,
+  can_offer_double,
+  accept_double,
+  reject_double,
 } from '@engine/backgammon_engine'
 import { GameState, MatchState, MoveSequence, GameOverResult, Move, Player, GameMode } from '../types'
 import Board, { AnimMove } from '../components/Board'
@@ -72,6 +76,7 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
   const animKeyRef = useRef(0)
 
   const pipCount = JSON.parse(pip_count(JSON.stringify(gameState))) as { white: number; black: number }
+  const canDouble = gameState.phase === 'Rolling' && can_offer_double(JSON.stringify(gameState))
 
   // Number of moves the current roll requires (1 or 2, or up to 4 for doubles).
   const maxMoves = originalSeqs.length > 0 ? originalSeqs[0].moves.length : 0
@@ -160,6 +165,21 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
     setDiceOrder(prev => [prev[1], prev[0]] as [number, number])
   }, [pendingMoves, gameState.dice])
 
+  const handleDouble = useCallback(() => {
+    const newStateJson = offer_double(JSON.stringify(gameState))
+    setGameState(JSON.parse(newStateJson))
+  }, [gameState])
+
+  const handleAccept = useCallback(() => {
+    const newStateJson = accept_double(JSON.stringify(gameState))
+    setGameState(JSON.parse(newStateJson))
+  }, [gameState])
+
+  const handleReject = useCallback(() => {
+    const resultJson = reject_double(JSON.stringify(gameState))
+    setGameResult(JSON.parse(resultJson))
+  }, [gameState])
+
   // Click on a checker (or point): immediately move by the left die value.
   // Silent no-op if the move is illegal.
   const handlePointClick = useCallback((pointIndex: number) => {
@@ -206,12 +226,24 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
         </div>
       )}
 
-      {/* Top info line — Black */}
-      <div className="flex items-center justify-between w-full max-w-4xl">
+      {/* Top info line — Black; cube die at spine when value == 1 */}
+      <div className="relative flex items-center justify-between w-full max-w-4xl">
         <div className="flex items-center gap-2">
           <span className="font-body text-xs text-muted-foreground">Wins:</span>
           <WinDots score={matchState.score_black} target={matchState.target} filled="●" empty="○" />
         </div>
+        {gameState.cube_value === 1 && (
+          <div className="absolute left-[47.61%] -translate-x-1/2 flex items-center justify-center"
+            style={{
+              width: 24, height: 24, borderRadius: 3,
+              backgroundColor: 'hsl(var(--board-frame))',
+              border: '1px solid hsl(var(--board-frame-highlight))',
+              color: 'white', fontSize: 11, fontWeight: 'bold', fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            {gameState.cube_value}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <span className="font-body text-xs text-muted-foreground">Pips:</span>
           <span className="font-body text-sm text-foreground font-medium">
@@ -228,6 +260,8 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
         diceOrder={diceOrder}
         movesUsed={pendingMoves.length}
         maxMoves={maxMoves}
+        cubeValue={gameState.cube_value}
+        cubeOwner={gameState.cube_owner}
         flashDest={flashDest}
         animMove={animMove}
         onPointClick={handlePointClick}
@@ -237,12 +271,20 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
         onUndo={gameState.phase === 'Moving' ? handleUndo : undefined}
       />
 
-      {/* Bottom info line — White */}
-      <div className="flex items-center justify-between w-full max-w-4xl">
+      {/* Bottom info line — White; Double button absolutely positioned at the spine */}
+      <div className="relative flex items-center justify-between w-full max-w-4xl">
         <div className="flex items-center gap-2">
           <span className="font-body text-xs text-muted-foreground">Wins:</span>
           <WinDots score={matchState.score_white} target={matchState.target} filled="●" empty="○" />
         </div>
+        {canDouble && (
+          <button
+            onClick={handleDouble}
+            className="absolute left-[47.61%] -translate-x-1/2 text-xs font-body border border-primary/30 text-foreground hover:bg-primary/10 px-2 py-0.5 rounded transition-colors"
+          >
+            Double
+          </button>
+        )}
         <div className="flex items-center gap-2">
           <span className="font-body text-xs text-muted-foreground">Pips:</span>
           <span className="font-body text-sm text-foreground font-medium">
@@ -251,18 +293,14 @@ export default function GameScreen({ matchLength, mode: _mode, onNewGame }: Prop
         </div>
       </div>
 
-      {/* Cube — centred below board */}
-      <div className="flex justify-center">
-        <Cube
-          cubeValue={gameState.cube_value}
-          cubeOwner={gameState.cube_owner}
-          offerPending={gameState.phase === 'CubeOffered'}
-          showDoubleButton={false /* TODO: wire to WASM engine */}
-          onDouble={() => { /* TODO: wire to WASM engine */ }}
-          onAccept={() => { /* TODO: wire to WASM engine */ }}
-          onReject={() => { /* TODO: wire to WASM engine */ }}
-        />
-      </div>
+      {/* Cube modal — fixed-positioned, no layout impact */}
+      <Cube
+        cubeValue={gameState.cube_value}
+        cubeOwner={gameState.cube_owner}
+        offerPending={gameState.phase === 'CubeOffered'}
+        onAccept={handleAccept}
+        onReject={handleReject}
+      />
 
       {gameResult && (
         <GameOverModal

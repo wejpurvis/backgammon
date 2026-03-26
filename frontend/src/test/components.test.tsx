@@ -105,7 +105,7 @@ describe('ScoreBoard', () => {
 
 describe('GameOverModal', () => {
   const makeResult = (winner: 'White' | 'Black', win_type: string, points: number): GameOverResult =>
-    ({ winner, win_type: win_type as GameOverResult['win_type'], points })
+    ({ winner, win_type: win_type as GameOverResult['win_type'], points, cube_value: 1 })
 
   it('shows the winner name', () => {
     render(<GameOverModal result={makeResult('White', 'Normal', 1)} onNewGame={() => {}} />)

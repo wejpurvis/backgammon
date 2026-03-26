@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { Board as BoardType, Player, Phase } from "../types";
+import type { Board as BoardType, Player, Phase, CubeOwner } from "../types";
 import Checker from "./Checker";
 import Dice from "./Dice";
 
@@ -75,6 +75,8 @@ interface BoardProps {
   diceOrder: [number, number];
   movesUsed: number;
   maxMoves: number;
+  cubeValue: number;
+  cubeOwner: CubeOwner;
   /** Source point to flash with a brief green glow (1–24), or null */
   flashDest?: number | null;
   /** Checker currently in-flight — renders a smooth animated copy */
@@ -94,6 +96,8 @@ const Board: React.FC<BoardProps> = ({
   diceOrder,
   movesUsed,
   maxMoves,
+  cubeValue,
+  cubeOwner,
   flashDest,
   animMove,
   onPointClick,
@@ -208,10 +212,13 @@ const Board: React.FC<BoardProps> = ({
     const bCount = Math.max(0, -board.points[25]);
     const elements: React.ReactNode[] = [];
 
+    // Undo button occupies BOARD_H/2 ±12 (208–232). Stack checkers outward from that gap:
+    // White: first center at BOARD_H/2 - 30 (bottom edge 203, 5px above undo top 208)
+    // Black: first center at BOARD_H/2 + 30 (top edge 237, 5px below undo bottom 232)
     for (let i = 0; i < Math.min(wCount, 4); i++) {
       elements.push(
         <Checker key={`bw-${i}`} player="White" x={barX}
-          y={BOARD_H / 2 - 20 - i * CHECKER_SPACING}
+          y={BOARD_H / 2 - 30 - i * CHECKER_SPACING}
           radius={CHECKER_R - 1}
           onClick={() => onPointClick?.(0)}
         />
@@ -220,7 +227,7 @@ const Board: React.FC<BoardProps> = ({
     for (let i = 0; i < Math.min(bCount, 4); i++) {
       elements.push(
         <Checker key={`bb-${i}`} player="Black" x={barX}
-          y={BOARD_H / 2 + 20 + i * CHECKER_SPACING}
+          y={BOARD_H / 2 + 30 + i * CHECKER_SPACING}
           radius={CHECKER_R - 1}
           onClick={() => onPointClick?.(25)}
         />
@@ -266,6 +273,35 @@ const Board: React.FC<BoardProps> = ({
     return elements;
   };
 
+  const renderCubeDie = () => {
+    const x = barX;
+    const cubeY =
+      cubeOwner === "Centre" ? BOARD_H / 2
+      : cubeOwner === "Black" ? BOARD_H / 2 - 70
+      : BOARD_H / 2 + 70;
+    const size = 24;
+    return (
+      <g key="cube-die">
+        <rect
+          x={x - size / 2} y={cubeY - size / 2}
+          width={size} height={size}
+          rx={3}
+          fill="hsl(var(--board-frame))"
+          stroke="hsl(var(--board-frame-highlight))"
+          strokeWidth={1}
+        />
+        <text
+          x={x} y={cubeY}
+          textAnchor="middle" dominantBaseline="central"
+          fontSize="11" fontWeight="bold" fontFamily="Inter, sans-serif"
+          fill="white"
+        >
+          {cubeValue}
+        </text>
+      </g>
+    );
+  };
+
   const showForWhite = currentPlayer === "White";
   const showForBlack = currentPlayer === "Black";
 
@@ -301,6 +337,7 @@ const Board: React.FC<BoardProps> = ({
       {Array.from({ length: 24 }, (_, i) => renderCheckers(i + 1))}
       {renderBarCheckers()}
       {renderBearOff()}
+      {cubeValue > 1 && renderCubeDie()}
 
       {/* Black dice — left half */}
       <foreignObject x={HALF_LEFT_CX - 50} y={BOARD_H / 2 - 25} width={100} height={50}>
@@ -400,7 +437,7 @@ const Board: React.FC<BoardProps> = ({
         )
       })()}
 
-      {/* Undo button on center bar — visible during Moving phase */}
+      {/* Undo button — vertically centred on the spine (BOARD_H/2) */}
       {onUndo && (
         <foreignObject x={FRAME + 6 * POINT_W} y={BOARD_H / 2 - 12} width={BAR_W} height={24}>
           <button

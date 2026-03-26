@@ -51,6 +51,7 @@ struct GameOverResult {
     winner: Player,
     win_type: game::WinType,
     points: u32,
+    cube_value: u8,
 }
 
 #[derive(Serialize)]
@@ -119,6 +120,7 @@ pub fn is_game_over(state_json: &str) -> String {
                 winner,
                 win_type,
                 points: base * state.cube_value as u32,
+                cube_value: state.cube_value,
             })
             .unwrap()
         }
@@ -156,6 +158,34 @@ pub fn respond_to_double(state_json: &str, accept: bool) -> String {
         })
         .unwrap()
     }
+}
+
+/// Returns true if the current player is allowed to offer the cube.
+#[wasm_bindgen]
+pub fn can_offer_double(state_json: &str) -> bool {
+    let state: game::GameState = serde_json::from_str(state_json).unwrap();
+    cube::can_offer_double(&state)
+}
+
+/// Opponent accepts the cube offer. Returns JSON GameState with doubled cube value.
+#[wasm_bindgen]
+pub fn accept_double(state_json: &str) -> String {
+    let state: game::GameState = serde_json::from_str(state_json).unwrap();
+    serde_json::to_string(&cube::accept_double(&state)).unwrap()
+}
+
+/// Opponent rejects (resigns) the cube offer. Returns JSON GameOverResult.
+#[wasm_bindgen]
+pub fn reject_double(state_json: &str) -> String {
+    let state: game::GameState = serde_json::from_str(state_json).unwrap();
+    let result = cube::reject_double(&state);
+    serde_json::to_string(&GameOverResult {
+        winner: result.winner,
+        win_type: result.outcome_type,
+        points: result.points_awarded,
+        cube_value: result.cube_value,
+    })
+    .unwrap()
 }
 
 /// Returns JSON `{"white": u32, "black": u32}` pip counts for the current board.

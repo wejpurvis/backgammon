@@ -27,7 +27,9 @@ export default function GameOverModal({ result, onNewGame }: Props) {
         />
         <h2 className="font-display text-3xl text-foreground">{result.winner} Wins</h2>
         <p className="font-body text-muted-foreground text-lg">
-          {label} — {result.points} {result.points === 1 ? "point" : "points"}
+          {result.cube_value > 1
+            ? `${label} × ${result.cube_value} = ${result.points} points`
+            : `${label} — ${result.points} ${result.points === 1 ? "point" : "points"}`}
         </p>
         <button
           onClick={onNewGame}

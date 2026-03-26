@@ -46,4 +46,5 @@ export interface GameOverResult {
   winner: Player
   win_type: WinType
   points: number
+  cube_value: number
 }
